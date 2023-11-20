@@ -3,3 +3,5 @@ test*
 .DS_Store
 __pycache__/*
 checkpoints/*
+
+wandb/*
