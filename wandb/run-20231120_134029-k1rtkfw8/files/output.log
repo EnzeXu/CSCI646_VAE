@@ -1,0 +1,13 @@
+
+
+  0%|                                                                                                                                                                                                                                                                                                                                                                                                                                                   | 1/1000000.0 [00:03<920:29:57,  3.31s/it]
+  0%|                                                                                                                                                                                                                                                                                                                                                                                                                                                   | 1/1000000.0 [00:03<920:29:57,  3.31s/it]Traceback (most recent call last):
+  File "/Users/enze/workspace/CSCI646_VAE/main.py", line 34, in main
+    net.train()
+  File "/Users/enze/workspace/CSCI646_VAE/solver_VAE.py", line 164, in train
+    vae_loss.backward()
+  File "/Users/enze/workspace/CSCI646_VAE/venv/lib/python3.9/site-packages/torch/_tensor.py", line 492, in backward
+    torch.autograd.backward(
+  File "/Users/enze/workspace/CSCI646_VAE/venv/lib/python3.9/site-packages/torch/autograd/__init__.py", line 251, in backward
+    Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+RuntimeError: one of the variables needed for gradient computation has been modified by an inplace operation: [torch.FloatTensor [64, 32, 16, 16]], which is output 0 of ReluBackward0, is at version 2; expected version 1 instead. Hint: enable anomaly detection to find the operation that failed to compute its gradient, with torch.autograd.set_detect_anomaly(True).

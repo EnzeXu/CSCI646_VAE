@@ -134,7 +134,7 @@ class VAE(nn.Module):
         x = torch.sigmoid(x.view(-1, self.nc * 28 * 28))
         return x
 
-    def forward_old(self, x):
+    def forward(self, x):
         distributions = self._encode(x)
         mu = distributions[:, :self.z_dim]
         logvar = distributions[:, self.z_dim:]
@@ -142,10 +142,10 @@ class VAE(nn.Module):
         ## reprameterize trick
         z = reparametrize(mu, logvar)
         x_recon = self._decode(z)
-
+        print(f"x_recon, mu, logvar: {x_recon.shape}, {mu.shape}, {logvar.shape}")
         return x_recon, mu, logvar
 
-    def forward(self, x):
+    def forward_old(self, x):
         mean, std = self._encoder(x)
         z = self._sample_z(mean, std)
         x = self._decoder(z)
@@ -157,10 +157,10 @@ class VAE(nn.Module):
         return mean + std * epsilon
 
     def _encode(self, x):
-        return self._encoder(x)
+        return self.encoder(x)
 
     def _decode(self, z):
-        return self._decoder(z)
+        return self.decoder(z)
 
 
 def kaiming_init(m):
