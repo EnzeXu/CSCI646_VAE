@@ -75,6 +75,7 @@ class VAE(nn.Module):
             nn.ReLU(True),
             nn.Conv2d(32, 32, 4, 2, 1),          # B,  32, 16, 16
             nn.ReLU(True),
+            nn.ReLU(True),
             nn.Conv2d(32, 64, 4, 2, 1),          # B,  64,  8,  8
             nn.ReLU(True),
             nn.Conv2d(64, 64, 4, 2, 1),          # B,  64,  4,  4
@@ -117,10 +118,10 @@ class VAE(nn.Module):
         x = self.bn(x)
         x = F.relu(self.enc_conv3(x))
         x = F.relu(self.enc_fc1(x.view(-1, 32 * 3 * 3)))
-        # mean = self.enc_mean(x)
-        # std = F.softplus(self.enc_std(x))
-        # return mean, std
-        return x
+        mean = self.enc_mean(x)
+        std = F.softplus(self.enc_std(x))
+        return mean, std
+        # return x
 
     def _decoder(self, z):
         x = F.relu(self.dec_fc1(z))
@@ -133,7 +134,7 @@ class VAE(nn.Module):
         x = torch.sigmoid(x.view(-1, self.nc * 28 * 28))
         return x
 
-    def forward(self, x):
+    def forward_old(self, x):
         distributions = self._encode(x)
         mu = distributions[:, :self.z_dim]
         logvar = distributions[:, self.z_dim:]
@@ -143,6 +144,17 @@ class VAE(nn.Module):
         x_recon = self._decode(z)
 
         return x_recon, mu, logvar
+
+    def forward(self, x):
+        mean, std = self._encoder(x)
+        z = self._sample_z(mean, std)
+        x = self._decoder(z)
+        return x, mean, std
+
+    def _sample_z(self, mean, std):
+        # Reparametrization trick
+        epsilon = torch.randn(mean.shape).to(mean.device)
+        return mean + std * epsilon
 
     def _encode(self, x):
         return self._encoder(x)
