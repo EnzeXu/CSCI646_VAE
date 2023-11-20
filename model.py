@@ -104,7 +104,7 @@ class VAE(nn.Module):
             nn.ConvTranspose2d( 32, nc, 4, 2, 1 ),        # in channels = 32 , out_channels = 1, kernel_size =4, stride = 2, padding = 1
         )
 
-        self.weight_init()
+        # self.weight_init()
 
     def weight_init(self):
         for block in self._modules:
