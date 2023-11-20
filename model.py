@@ -112,7 +112,7 @@ class VAE(nn.Module):
                 kaiming_init(m)
 
     def _encoder(self, x):
-        x = F.relu(self.enc_conv1(x.view(-1, self.nc, 28, 28)))
+        x = F.relu(self.enc_conv1(x.view(-1, self.nc, 32, 32)))
         x = F.relu(self.enc_conv2(x))
         x = self.bn(x)
         x = F.relu(self.enc_conv3(x))
