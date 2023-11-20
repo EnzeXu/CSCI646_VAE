@@ -7,7 +7,7 @@ warnings.filterwarnings("ignore")
 import numpy as np
 import os
 from tqdm import tqdm
-import visdom
+# import visdom
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
@@ -20,7 +20,7 @@ from dataset import return_data
 from collections import deque
 
 import matplotlib.pyplot as plt
-import random
+
 
 def reconstruction_loss(x, x_recon, distribution):
     batch_size = x.size(0)
@@ -36,7 +36,7 @@ def reconstruction_loss(x, x_recon, distribution):
         recon_loss = None
 
     return recon_loss
-    
+
 
 def kl_divergence(mu, logvar):
     batch_size = mu.size(0)
@@ -52,7 +52,7 @@ def kl_divergence(mu, logvar):
     mean_kld = klds.mean(1).mean(0, True)
 
     return total_kld, dimension_wise_kld
-    
+
 
 class Solver(object):
     def __init__(self, args):
@@ -62,25 +62,25 @@ class Solver(object):
             self.device = torch.device('cuda', args.gpu)
         else:
             self.device = torch.device('cpu')
-        
+
         self.max_iter = args.max_iter
         self.global_iter = 0
 
-        self.z_dim = args.z_dim
-        self.out_dim = args.out_dim
-        self.beta = args.beta
-        self.objective = args.objective
-        self.model = args.model
-        self.lr = args.lr
-        self.beta1 = args.beta1
-        self.beta2 = args.beta2
-        self.load_ckp = args.load_ckp
+        self.z_dim = args.z_dim            # = 15
+        self.out_dim = args.out_dim        # dimension of predict y, =10
+        self.beta = args.beta              # beta parameter for KL-term in original beta-VAE, = 120
+        self.objective = args.objective    # beta-vae objective proposed in Higgins et al. , = 'H'
+        self.model = args.model            # model proposed in Higgins et al., ='H'
+        self.lr = args.lr                  # 1e-4, can be changed
+        self.beta1 = args.beta1            # Adam optimizer beta1, 0.9
+        self.beta2 = args.beta2            # Adam optimizer beta2, 0.999
+        self.load_ckp = args.load_ckp      # = true
         # self.dset_dir = args.dset_dir
-        self.batch_size = args.batch_size
-        self.save_step = args.save_step
+        self.batch_size = args.batch_size  # batch size = 64
+        self.save_step = args.save_step    # = 10000
 
         if args.dataset.lower() == 'mnist':
-            self.nc = 1
+            self.nc = 1                    # number of channel = 1
             self.decoder_dist = 'bernoulli'
         elif args.dataset.lower() == 'svhn':
             self.nc = 3
@@ -91,17 +91,18 @@ class Solver(object):
         else:
             print("data type is incorrect")
             raise NotImplementedError
-        
+
         if args.model == 'H':
             net = VAE
         else:
             raise NotImplementedError('only support model H or B')
-        
+
         ## define network and optimizer
         self.net = net(self.out_dim,self.z_dim, self.nc).to(self.device)
 
         self.optim = optim.Adam(self.net.parameters(), lr=self.lr,
                                     betas=(self.beta1, self.beta2))
+        self.scheduler = torch.optim.lr_scheduler.StepLR(self.optim, step_size=1000, gamma=0.99)
 
         self.viz_name = args.viz_name
 
@@ -123,14 +124,14 @@ class Solver(object):
         ##----------------------------------------
         ## Step 1: finish code for data loader
         ##----------------------------------------
-        self.data_loader = return_data(args)  # Enze
-        
+        self.data_loader = return_data(args)
+
     def train(self):
         self.net_mode(train=True)
-        out = False
-        
+        out = False                                   # use to stop training
+
         pbar = tqdm(total=self.max_iter)
-        pbar.update(self.global_iter)
+        pbar.update(self.global_iter)     # initialize to be 0
         ## write log to log file
 
         while not out:
@@ -141,23 +142,27 @@ class Solver(object):
                 ##----------------------------------------
                 ## Step 2: feed image x into VAE network
                 ##----------------------------------------
-                x_recon, mu, logvar = self.net(x)  # Enze
+                x_recon, mu, logvar = self.net(x)
                 ## then compute the recon loss and KL loss
-                recon_loss = reconstruction_loss(x, x_recon, self.decoder_dist)  # Enze
-                total_kld, dim_wise_kld = kl_divergence(mu, logvar)  # Enze
-                
+                recon_loss =  reconstruction_loss( x, x_recon, self.decoder_dist )        # def reconstruction_loss(x, x_recon, distribution) return recon_loss
+                total_kld, dim_wise_kld =  kl_divergence(mu, logvar)                                        # def kl_divergence(mu, logvar):
+
+
                 ##------------------------------------------------
                 ## Step 3: write code of loss/objective function
                 ##------------------------------------------------
-                vae_loss = recon_loss + self.beta*total_kld # Enze
+                vae_loss = recon_loss + self.beta * total_kld
 
-                if self.global_iter % 200 == 0:
-                    print("vae_loss:{} recon_loss:{} KL_loss:{}".format(vae_loss.item(),recon_loss.item(),total_kld.item()))
-                
+                if self.global_iter % 200 ==0:
+                    print("vae_loss:{} recon_loss:{} KL_loss:{} LR:{} ".format(vae_loss.item(),recon_loss.item(),total_kld.item(), self.optim.param_groups[0]["lr"] ))
+
                 ##------------------------------------------
                 ## Step 4: write code of back propagation
                 ##------------------------------------------
-                
+                self.optim.zero_grad()
+                vae_loss.backward()
+                self.optim.step()
+                self.scheduler.step()
 
                 ## visualize the images
                 if (self.global_iter) % self.save_step ==0:
@@ -167,41 +172,38 @@ class Solver(object):
                 if self.global_iter % self.save_step == 0:
                     self.save_checkpoint('last')
                     pbar.write('Saved checkpoint(iter:{})'.format(self.global_iter))
-                
+
                 if self.global_iter >= self.max_iter:
                     out = True
                     break
-        
+
         pbar.write("[Training Finished]")
         pbar.close()
-    
+
 
     def viz_traverse(self):
         self.net_mode(train=False)
         decoder = self.net.decoder
-        
+
         if self.save_output:
             output_dir = os.path.join(self.output_dir, str(self.global_iter))
             print("save test results: ", output_dir)
             os.makedirs(output_dir, exist_ok=True)
 
-        interpolation = torch.arange(-3, 3.1, 2.0/3)
-
-        random_z = Variable(cuda(torch.rand(100, 10), self.use_cuda), volatile=True)
-
-        # print(f"random_z shape: {random_z.shape}")
         for i in range(10):
             ##-------------------------------------------------------------
             ## Step 5: randomly/uniformly generate z as the input of decoder
             ##-------------------------------------------------------------
-            # z = random_z.clone()
-            # for row in range(self.z_dim):
-            #     z[:, row] = interpolation[i]
-            z = torch.randn(100, self.z_dim).to(self.device)
+            std_dev = 1
+            low = -2
+            high = 2
+            mean = 0
+            values = np.random.randn(self.batch_size, self.z_dim) * std_dev + mean
+            z = np.clip(values, low, high)
+            z = torch.tensor(z, dtype = torch.float32).to(self.device)
 
             ## get the ouput of reconstructed image
             sample = torch.sigmoid(decoder(z))
-            # print(f"sample: {sample}")
             save_image(tensor=sample.cpu(),fp=os.path.join(output_dir, '{}_image.jpg'.format(i)),\
                     nrow=self.z_dim, pad_value=1)
 
