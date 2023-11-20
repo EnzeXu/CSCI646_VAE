@@ -6,3 +6,4 @@ matplotlib
 visdom
 pandas
 scikit-learn
+wandb

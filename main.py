@@ -4,6 +4,7 @@ import argparse
 
 import numpy as np
 import torch
+import wandb
 
 from solver_VAE import Solver
 from utils import str2bool
@@ -29,7 +30,8 @@ def main(args):
     
     if args.train:
         print("*** [start training]***")
-        net.train()
+        with wandb.init(project='CSCI646-VAE', name='Default'):
+            net.train()
     else:
         net.viz_traverse()
         

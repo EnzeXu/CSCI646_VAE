@@ -6,6 +6,7 @@ import warnings
 warnings.filterwarnings("ignore")
 import numpy as np
 import os
+import wandb
 from tqdm import tqdm
 # import visdom
 import torch.nn as nn
@@ -176,6 +177,8 @@ class Solver(object):
                 if self.global_iter >= self.max_iter:
                     out = True
                     break
+
+                wandb.log({'vae_loss': vae_loss.item(), 'recon_loss': recon_loss.item(), 'KL_loss': total_kld.item(), 'lr': self.optim.param_groups[0]["lr"]})
 
         pbar.write("[Training Finished]")
         pbar.close()
