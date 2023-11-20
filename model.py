@@ -117,9 +117,10 @@ class VAE(nn.Module):
         x = self.bn(x)
         x = F.relu(self.enc_conv3(x))
         x = F.relu(self.enc_fc1(x.view(-1, 32 * 3 * 3)))
-        mean = self.enc_mean(x)
-        std = F.softplus(self.enc_std(x))
-        return mean, std
+        # mean = self.enc_mean(x)
+        # std = F.softplus(self.enc_std(x))
+        # return mean, std
+        return x
 
     def _decoder(self, z):
         x = F.relu(self.dec_fc1(z))
