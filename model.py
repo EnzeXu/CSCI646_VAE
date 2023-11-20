@@ -143,11 +143,11 @@ class VAE(nn.Module):
 
         return x_recon, mu, logvar
 
-    # def _encode(self, x):
-    #     return self.encoder(x)
-    #
-    # def _decode(self, z):
-    #     return self.decoder(z)
+    def _encode(self, x):
+        return self._encoder(x)
+
+    def _decode(self, z):
+        return self._decoder(z)
 
 
 def kaiming_init(m):
